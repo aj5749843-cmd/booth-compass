@@ -6,8 +6,8 @@
   "description": "Booth Compass - plan any expo privately with hybrid on-device + cloud AI (Firebase AI Logic).",
   "license": "Apache-2.0",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
+    "dev": "vite --open dev.html",
+    "build": "vite build && python3 build-single.py",
     "preview": "vite preview"
   },
   "dependencies": {
