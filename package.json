@@ -1,0 +1,19 @@
+{
+  "name": "booth-compass",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Booth Compass - plan any expo privately with hybrid on-device + cloud AI (Firebase AI Logic).",
+  "license": "Apache-2.0",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "firebase": "^13.4.0"
+  },
+  "devDependencies": {
+    "vite": "^7.0.0"
+  }
+}
