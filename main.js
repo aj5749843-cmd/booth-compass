@@ -305,12 +305,15 @@ function renderDetail() {
     <h4>Best for</h4><ul>${c.audience.map((o) => `<li>${esc(o)}</li>`).join("")}</ul>
     <h4>They're looking for</h4><ul>${c.seeking.map((o) => `<li>${esc(o)}</li>`).join("")}</ul>
     <h4>Pricing</h4><p class="one" style="margin:0">${esc(c.pricing)}</p>
-    <h4>Tags</h4><div class="tags">${c.tags.map((t) => `<span>${esc(t)}</span>`).join("")}</div>
+    <h4>Tags</h4><div class="tags">${c.tags.map((t) => `<button data-tag="${esc(t)}">${esc(t)}</button>`).join("")}</div>
+    <p class="hint" id="tagNote" style="margin-top:6px">Tip: click a tag to find similar booths.</p>
     <div class="row" style="margin-top:14px"><button class="btn" id="briefBtn">▶ 30-second booth reel</button></div>
     ${state.profile ? "" : '<p class="hint" style="margin-top:8px">Add your goals and run “Find my booths” to make the reel personal.</p>'}
     <div id="briefBox"></div>
   </div>`;
   $("#briefBtn").onclick = () => onBrief(b, c);
+  document.querySelectorAll(".tags button").forEach((btn) => (btn.onclick = () => highlightTag(btn.dataset.tag)));
+  document.querySelectorAll(".booth.tagmatch").forEach((g) => g.classList.remove("tagmatch"));
   $("#drawerClose").onclick = () => document.querySelector(".right").classList.remove("open");
   document.querySelector(".right").classList.add("open");
 }
@@ -352,51 +355,132 @@ async function onBrief(b, c) {
   playReel(b, c, r);
 }
 
-// ---------- 30-second booth reel: animated scenes + voice ----------
+// ---------- 30-second booth reel: scenes narrated one by one ----------
+function miniMap(b) {
+  const W = expo.floor.w, H = expo.floor.h;
+  const zones = expo.zones.map((z) => {
+    const [x, y, w, h] = z.box;
+    return `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="14" fill="none" stroke="${z.color}" stroke-opacity=".5" stroke-dasharray="6 5"/>`;
+  }).join("");
+  const booths = expo.booths.map((o) => {
+    const me = o.id === b.id;
+    return `<rect x="${o.x}" y="${o.y}" width="${o.w}" height="${o.h}" rx="5" fill="${me ? "#19c3b1" : "#22344f"}" ${me ? 'class="mm-me"' : ""}/>`;
+  }).join("");
+  const route = state.route.length
+    ? `<polyline points="${[expo.floor.entrance, ...state.route.map(center)].map((p) => p.x + "," + p.y).join(" ")}" fill="none" stroke="#ff6b8a" stroke-width="5" stroke-dasharray="12 9"/>`
+    : `<line x1="${expo.floor.entrance.x}" y1="${expo.floor.entrance.y}" x2="${center(b.id).x}" y2="${center(b.id).y}" stroke="#ff6b8a" stroke-width="5" stroke-dasharray="12 9"/>`;
+  const c = center(b.id);
+  return `<svg viewBox="25 55 ${W - 50} ${H}" class="mm">${zones}${booths}${route}
+    <circle cx="${c.x}" cy="${c.y}" r="22" fill="none" stroke="#fff" stroke-width="4" class="mm-ping"/>
+    <text x="${expo.floor.entrance.x}" y="${H + 10}" fill="#94a6bf" font-size="22" text-anchor="middle">▲ ENTRANCE</text></svg>`;
+}
+
 function playReel(b, c, r) {
   const zone = expo.zones.find((z) => z.code === b.zone);
   const s = state.scores[b.id];
+  const stop = state.route.indexOf(b.id);
+  const meters = Math.round(dist(expo.floor.entrance, center(b.id)) / 10);
+  const list = (a) => (a.length > 1 ? a.slice(0, -1).join(", ") + " and " + a[a.length - 1] : a[0] || "");
+  const qs = r.questions.slice(0, 3);
+  // each scene = what you see + what you hear
   const scenes = [
-    `<div class="sc sc-title"><span class="sc-code" style="background:${zone.color}">${esc(b.id)}</span>
-       <h2>${esc(b.name)}</h2><p>${esc(zone.label)} · ${esc(c.stage)}</p></div>`,
-    `<div class="sc"><p class="sc-kicker">What they do</p><h3>${esc(c.oneLiner)}</h3></div>`,
-    `<div class="sc"><p class="sc-kicker">They offer</p><div class="sc-chips">${c.offerings.slice(0, 4).map((o, i) => `<span style="animation-delay:${0.25 + i * 0.35}s">${esc(o)}</span>`).join("")}</div></div>`,
-    `<div class="sc"><p class="sc-kicker">${s ? "Why it fits you" : "Who should visit"}</p>
-       ${s ? `<div class="sc-score ${tier(s.score)}">${s.score}</div>` : ""}<h3>${esc(s ? s.reason : c.audience.join(" · "))}</h3></div>`,
-    `<div class="sc"><p class="sc-kicker">Ask them</p><ol class="sc-qs">${r.questions.slice(0, 3).map((q, i) => `<li style="animation-delay:${0.3 + i * 0.6}s">${esc(q)}</li>`).join("")}</ol></div>`,
+    { html: `<div class="sc sc-title"><span class="sc-code" style="background:${zone.color}">${esc(b.id)}</span>
+        <h2>${esc(b.name)}</h2><p>${esc(zone.label)} · ${esc(c.stage)}</p></div>`,
+      say: `${b.name}. Booth ${b.id.replace("-", " ")}, in ${zone.label}.` },
+    { html: `<div class="sc"><p class="sc-kicker">What they do</p><h3>${esc(c.oneLiner)}</h3></div>`,
+      say: c.oneLiner + "." },
+    { html: `<div class="sc"><p class="sc-kicker">They offer</p><div class="sc-chips">${c.offerings.slice(0, 4).map((o, i) => `<span style="animation-delay:${0.2 + i * 0.4}s">${esc(o)}</span>`).join("")}</div></div>`,
+      say: `They offer ${list(c.offerings.slice(0, 3))}.` },
+    { html: `<div class="sc sc-map"><p class="sc-kicker">Where to find it</p>${miniMap(b)}
+        <p class="sc-sub">${stop >= 0 ? `Stop ${stop + 1} of ${state.route.length} on your route` : `${zone.label} · about ${meters} m from the entrance`}</p></div>`,
+      say: stop >= 0 ? `It's stop ${stop + 1} on your route, in the ${zone.label} area.` : `You'll find it in the ${zone.label} area, about ${meters} meters from the entrance.` },
+    { html: `<div class="sc"><p class="sc-kicker">${s ? "Why it fits you" : "Who should visit"}</p>
+        ${s ? `<div class="sc-score ${tier(s.score)}">${s.score}</div>` : ""}<h3>${esc(s ? s.reason : list(c.audience))}</h3></div>`,
+      say: s ? `Your match score is ${s.score}. ${s.reason}` : `Best for ${list(c.audience)}.` },
+    ...qs.map((q, n) => ({
+      html: `<div class="sc"><p class="sc-kicker">Ask them</p><ol class="sc-qs">${qs.map((x, k) =>
+        `<li class="${k === n ? "on" : k < n ? "done" : "todo"}">${esc(x)}</li>`).join("")}</ol></div>`,
+      say: (n === 0 ? "Ask them. " : "") + q,
+    })),
   ];
-  // Full-screen overlay (plain div, works in every browser)
+
   $("#reel")?.remove();
-  const dlg = document.createElement("div");
-  dlg.id = "reel";
-  dlg.innerHTML = `<div class="reel-box"><div class="reel-stage"></div><div class="reel-bar"><i></i></div>
+  const ov = document.createElement("div");
+  ov.id = "reel";
+  ov.innerHTML = `<div class="reel-box"><div class="reel-stage"></div>
+    <div class="reel-dots">${scenes.map(() => "<i></i>").join("")}</div>
     <div class="reel-ctl"><span class="speaking"><span class="wave"><i></i><i></i><i></i></span> ${SRC[r.where] || "generic"}</span>
+    <span class="reel-sub"></span>
     <button class="btn-ghost" id="reelClose">Close</button></div></div>`;
-  document.body.appendChild(dlg);
-  const stage = dlg.querySelector(".reel-stage");
-  const total = 24000, per = total / scenes.length;
-  dlg.querySelector(".reel-bar i").style.animationDuration = total + "ms";
-  let i = 0, timer;
-  const show = () => {
-    stage.innerHTML = scenes[i];
+  document.body.appendChild(ov);
+  const stage = ov.querySelector(".reel-stage");
+  const dots = ov.querySelectorAll(".reel-dots i");
+  const sub = ov.querySelector(".reel-sub");
+  let i = 0, timer, alive = true;
+  const voice = pickVoice();
+  const next = () => {
+    if (!alive) return;
+    if (i >= scenes.length) { ov.querySelector(".wave")?.remove(); return; }
+    const sc = scenes[i];
+    // keep the "ask them" list in place; only swap other scenes
+    stage.innerHTML = sc.html;
+    dots.forEach((d, k) => d.className = k < i ? "done" : k === i ? "on" : "");
+    sub.textContent = sc.say;
     i++;
-    if (i < scenes.length) timer = setTimeout(show, per);
+    const fallbackMs = Math.max(2600, sc.say.split(" ").length * 380);
+    const minMs = Math.max(2200, sc.say.split(" ").length * 260); // every scene stays on screen at least this long
+    const t0 = performance.now();
+    if (!("speechSynthesis" in self)) { timer = setTimeout(next, fallbackMs); return; }
+    const u = new SpeechSynthesisUtterance(sc.say);
+    if (voice) u.voice = voice;
+    u.lang = "en-US"; u.rate = 1;
+    let done = false;
+    const go = () => {
+      if (done) return; done = true; clearTimeout(timer);
+      timer = setTimeout(next, Math.max(450, minMs - (performance.now() - t0)));
+    };
+    u.onend = go; u.onerror = go;
+    timer = setTimeout(go, fallbackMs + 4000); // safety if the browser never fires onend
+    speechSynthesis.speak(u);
   };
-  const close = () => { clearTimeout(timer); try { speechSynthesis.cancel(); } catch {} dlg.remove(); };
-  dlg.querySelector("#reelClose").onclick = close;
-  dlg.addEventListener("click", (e) => { if (e.target === dlg) close(); });
-  show();
-  speak(r.briefing + " Ask them: " + r.questions.slice(0, 3).join(" "));
+  const close = () => { alive = false; clearTimeout(timer); try { speechSynthesis.cancel(); } catch {} ov.remove(); };
+  ov.querySelector("#reelClose").onclick = close;
+  ov.addEventListener("click", (e) => { if (e.target === ov) close(); });
+  try { speechSynthesis.cancel(); } catch {}
+  next();
 }
+
+// prefer natural-sounding English voices when the browser has them
+function pickVoice() {
+  if (!("speechSynthesis" in self)) return null;
+  const vs = speechSynthesis.getVoices().filter((v) => /^en(-|_)/i.test(v.lang));
+  const rank = (v) => (/natural|online/i.test(v.name) ? 3 : 0) + (/google/i.test(v.name) ? 2 : 0) + (/en-US/i.test(v.lang) ? 1 : 0);
+  return vs.sort((a, b) => rank(b) - rank(a))[0] || null;
+}
+if ("speechSynthesis" in self) speechSynthesis.onvoiceschanged = () => speechSynthesis.getVoices();
 
 function speak(text) {
   if (!("speechSynthesis" in self)) return;
   speechSynthesis.cancel();
   const u = new SpeechSynthesisUtterance(text);
-  u.lang = "en-US"; u.rate = 1.02;
-
-  u.onend = () => document.querySelector("#reel .wave")?.remove();
+  const v = pickVoice(); if (v) u.voice = v;
+  u.lang = "en-US";
   speechSynthesis.speak(u);
+}
+
+// ---------- tags: click to light up every booth with the same tag ----------
+function highlightTag(tag) {
+  const same = Object.entries(state.cards || {}).filter(([, c]) => c.tags.map((t) => t.toLowerCase()).includes(tag.toLowerCase())).map(([id]) => id);
+  document.querySelectorAll(".booth.tagmatch").forEach((g) => g.classList.remove("tagmatch"));
+  same.forEach((id) => $("#b-" + id)?.classList.add("tagmatch"));
+  document.querySelectorAll(".tags button").forEach((btn) => btn.classList.toggle("on", btn.dataset.tag === tag));
+  $("#tagNote").innerHTML = `<b>${same.length}</b> booth${same.length === 1 ? "" : "s"} tagged “${esc(tag)}” glow on the map. <a href="#" id="tagClear">Clear</a>`;
+  $("#tagClear").onclick = (e) => { e.preventDefault(); clearTag(); };
+}
+function clearTag() {
+  document.querySelectorAll(".booth.tagmatch").forEach((g) => g.classList.remove("tagmatch"));
+  document.querySelectorAll(".tags button.on").forEach((b) => b.classList.remove("on"));
+  if ($("#tagNote")) $("#tagNote").textContent = "Tip: click a tag to find similar booths.";
 }
 
 // ---------------- transparency log ----------------
