@@ -218,6 +218,7 @@ function quickOverlap(profile, card) {
 async function onFind() {
   const shield = $("#shield").checked;
   state.busy = true; refreshFind();
+  $("#shield").disabled = true;
   state.scores = {}; state.route = []; drawRoute();
   expo.booths.forEach((b) => paintBooth(b.id));
   renderResults();
@@ -249,6 +250,7 @@ async function onFind() {
       : "Something went wrong: " + e.message;
   }
   state.busy = false; refreshFind();
+  $("#shield").disabled = false;
 }
 
 const SRC = { on_device: "💻 on device", in_cloud: "☁️ cloud", simulated: "⚙️ simulated" };
@@ -363,15 +365,14 @@ function playReel(b, c, r) {
        ${s ? `<div class="sc-score ${tier(s.score)}">${s.score}</div>` : ""}<h3>${esc(s ? s.reason : c.audience.join(" · "))}</h3></div>`,
     `<div class="sc"><p class="sc-kicker">Ask them</p><ol class="sc-qs">${r.questions.slice(0, 3).map((q, i) => `<li style="animation-delay:${0.3 + i * 0.6}s">${esc(q)}</li>`).join("")}</ol></div>`,
   ];
-  let dlg = $("#reel");
-  if (!dlg) {
-    dlg = document.createElement("dialog");
-    dlg.id = "reel";
-    document.body.appendChild(dlg);
-  }
-  dlg.innerHTML = `<div class="reel-stage"></div><div class="reel-bar"><i></i></div>
+  // Full-screen overlay (plain div, works in every browser)
+  $("#reel")?.remove();
+  const dlg = document.createElement("div");
+  dlg.id = "reel";
+  dlg.innerHTML = `<div class="reel-box"><div class="reel-stage"></div><div class="reel-bar"><i></i></div>
     <div class="reel-ctl"><span class="speaking"><span class="wave"><i></i><i></i><i></i></span> ${SRC[r.where] || "generic"}</span>
-    <button class="btn-ghost" id="reelClose">Close</button></div>`;
+    <button class="btn-ghost" id="reelClose">Close</button></div></div>`;
+  document.body.appendChild(dlg);
   const stage = dlg.querySelector(".reel-stage");
   const total = 24000, per = total / scenes.length;
   dlg.querySelector(".reel-bar i").style.animationDuration = total + "ms";
@@ -381,10 +382,9 @@ function playReel(b, c, r) {
     i++;
     if (i < scenes.length) timer = setTimeout(show, per);
   };
-  const close = () => { clearTimeout(timer); speechSynthesis?.cancel(); dlg.close(); };
+  const close = () => { clearTimeout(timer); try { speechSynthesis.cancel(); } catch {} dlg.remove(); };
   dlg.querySelector("#reelClose").onclick = close;
-  dlg.onclose = () => { clearTimeout(timer); speechSynthesis?.cancel(); };
-  dlg.showModal();
+  dlg.addEventListener("click", (e) => { if (e.target === dlg) close(); });
   show();
   speak(r.briefing + " Ask them: " + r.questions.slice(0, 3).join(" "));
 }

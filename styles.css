@@ -147,8 +147,9 @@ dialog::backdrop { background: rgba(0,0,0,.6); }
 code { background: var(--bg); padding: 1px 5px; border-radius: 5px; font-size: 12px; }
 
 /* booth reel */
-#reel { width: min(820px, 94vw); height: min(520px, 80vh); padding: 0; overflow: hidden; background: radial-gradient(circle at 20% 10%, #16384a, #0b1524 70%); border: 1px solid var(--teal-dark); }
-.reel-stage { height: calc(100% - 62px); display: grid; place-items: center; padding: 30px 46px; text-align: center; }
+#reel { position: fixed; inset: 0; z-index: 1000; background: rgba(3,8,16,.72); display: grid; place-items: center; animation: scIn .3s both; }
+.reel-box { width: min(820px, 94vw); height: min(520px, 80vh); overflow: hidden; border-radius: 16px; background: radial-gradient(circle at 20% 10%, #16384a, #0b1524 70%); border: 1px solid var(--teal-dark); box-shadow: 0 30px 80px rgba(0,0,0,.6); display: flex; flex-direction: column; }
+.reel-stage { flex: 1; display: grid; place-items: center; padding: 30px 46px; text-align: center; }
 .sc { animation: scIn .7s cubic-bezier(.2,.8,.2,1) both; max-width: 640px; }
 @keyframes scIn { from { opacity: 0; transform: translateY(26px) scale(.97); } to { opacity: 1; transform: none; } }
 .sc-title h2 { font-size: 46px; margin: 14px 0 6px; letter-spacing: .3px; }
