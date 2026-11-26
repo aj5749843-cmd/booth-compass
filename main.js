@@ -1,7 +1,7 @@
 import { EXPO as DEMO_EXPO } from "./expo-data.js";
 import {
   SIMULATION, initAI, deviceStatus, prepareDevice, buildCards, buildProfile,
-  scoreBooth, briefBooth, callLog, onLog, setRetryNotice,
+  scoreBooth, briefBooth, callLog, onLog, setRetryNotice, translatePublic,
 } from "./ai.js";
 
 const $ = (s) => document.querySelector(s);
@@ -375,7 +375,8 @@ function miniMap(b) {
     <text x="${expo.floor.entrance.x}" y="${H + 10}" fill="#94a6bf" font-size="22" text-anchor="middle">▲ ENTRANCE</text></svg>`;
 }
 
-function playReel(b, c, r) {
+async function playReel(b, c, r) {
+  await voicesReady();
   const zone = expo.zones.find((z) => z.code === b.zone);
   const s = state.scores[b.id];
   const stop = state.route.indexOf(b.id);
@@ -410,14 +411,28 @@ function playReel(b, c, r) {
   ov.innerHTML = `<div class="reel-box"><div class="reel-stage"></div>
     <div class="reel-dots">${scenes.map(() => "<i></i>").join("")}</div>
     <div class="reel-ctl"><span class="speaking"><span class="wave"><i></i><i></i><i></i></span> ${SRC[r.where] || "generic"}</span>
-    <span class="reel-sub"></span>
-    <button class="btn-ghost" id="reelClose">Close</button></div></div>`;
+    <select id="reelVoice" title="Voice"></select>
+    <select id="reelRate" title="Speed"><option value="0.9">0.9×</option><option value="1">1×</option><option value="1.1">1.1×</option></select>
+    <button class="btn-ghost" id="reelClose">Close</button></div>
+    <div class="reel-subs"><p class="sub-en"></p><p class="sub-ar" dir="rtl" lang="ar"></p></div></div>`;
   document.body.appendChild(ov);
   const stage = ov.querySelector(".reel-stage");
   const dots = ov.querySelectorAll(".reel-dots i");
-  const sub = ov.querySelector(".reel-sub");
+  const subEn = ov.querySelector(".sub-en");
+  const subAr = ov.querySelector(".sub-ar");
+  // voice + speed pickers (remembered on this device)
+  const vSel = ov.querySelector("#reelVoice"), rSel = ov.querySelector("#reelRate");
+  const voices = englishVoices();
+  vSel.innerHTML = voices.map((v) => `<option value="${esc(v.name)}">${esc(v.name.replace(/Microsoft |Google /, "").replace(/ Online \(Natural\)/, " ★"))}</option>`).join("") || "<option>Default voice</option>";
+  const saved = load("bc-voice"), savedRate = load("bc-rate");
+  if (saved && voices.some((v) => v.name === saved)) vSel.value = saved;
+  rSel.value = savedRate || "1";
+  vSel.onchange = () => save("bc-voice", vSel.value);
+  rSel.onchange = () => save("bc-rate", rSel.value);
+  // Arabic subtitles: on-device translator when available, else cloud for public lines only
+  const arabic = translateScenes(scenes, !!state.profile && !!s);
   let i = 0, timer, alive = true;
-  const voice = pickVoice();
+  const voiceFor = () => voices.find((v) => v.name === vSel.value) || voices[0] || null;
   const next = () => {
     if (!alive) return;
     if (i >= scenes.length) { ov.querySelector(".wave")?.remove(); return; }
@@ -425,15 +440,18 @@ function playReel(b, c, r) {
     // keep the "ask them" list in place; only swap other scenes
     stage.innerHTML = sc.html;
     dots.forEach((d, k) => d.className = k < i ? "done" : k === i ? "on" : "");
-    sub.textContent = sc.say;
+    subEn.textContent = sc.say;
+    subAr.textContent = "";
+    const idx = i;
+    arabic.then((ar) => { if (alive && i - 1 === idx && ar[idx]) subAr.textContent = ar[idx]; });
     i++;
     const fallbackMs = Math.max(2600, sc.say.split(" ").length * 380);
     const minMs = Math.max(2200, sc.say.split(" ").length * 260); // every scene stays on screen at least this long
     const t0 = performance.now();
     if (!("speechSynthesis" in self)) { timer = setTimeout(next, fallbackMs); return; }
     const u = new SpeechSynthesisUtterance(sc.say);
-    if (voice) u.voice = voice;
-    u.lang = "en-US"; u.rate = 1;
+    const v = voiceFor(); if (v) u.voice = v;
+    u.lang = v?.lang || "en-US"; u.rate = parseFloat(rSel.value) || 1;
     let done = false;
     const go = () => {
       if (done) return; done = true; clearTimeout(timer);
@@ -450,14 +468,54 @@ function playReel(b, c, r) {
   next();
 }
 
-// prefer natural-sounding English voices when the browser has them
-function pickVoice() {
-  if (!("speechSynthesis" in self)) return null;
+// ---------- voices ----------
+function englishVoices() {
+  if (!("speechSynthesis" in self)) return [];
   const vs = speechSynthesis.getVoices().filter((v) => /^en(-|_)/i.test(v.lang));
-  const rank = (v) => (/natural|online/i.test(v.name) ? 3 : 0) + (/google/i.test(v.name) ? 2 : 0) + (/en-US/i.test(v.lang) ? 1 : 0);
-  return vs.sort((a, b) => rank(b) - rank(a))[0] || null;
+  const rank = (v) => (/natural/i.test(v.name) ? 6 : 0) + (/online/i.test(v.name) ? 2 : 0) + (/google/i.test(v.name) ? 3 : 0) + (/en-US/i.test(v.lang) ? 1 : 0);
+  return vs.sort((a, b) => rank(b) - rank(a));
 }
-if ("speechSynthesis" in self) speechSynthesis.onvoiceschanged = () => speechSynthesis.getVoices();
+function pickVoice() { return englishVoices()[0] || null; }
+// voices load asynchronously; wait for them (max 1.5 s) so we never fall back to a robotic default
+function voicesReady() {
+  if (!("speechSynthesis" in self) || speechSynthesis.getVoices().length) return Promise.resolve();
+  return new Promise((res) => {
+    const t = setTimeout(res, 1500);
+    speechSynthesis.addEventListener("voiceschanged", () => { clearTimeout(t); res(); }, { once: true });
+  });
+}
+function load(k) { try { return localStorage.getItem(k); } catch { return null; } }
+function save(k, v) { try { localStorage.setItem(k, v); } catch { /* storage blocked */ } }
+
+// ---------- Arabic subtitles ----------
+let translatorP = null;
+async function onDeviceTranslator() {
+  if (!("Translator" in self)) return null;
+  if (!translatorP) {
+    translatorP = (async () => {
+      const opts = { sourceLanguage: "en", targetLanguage: "ar" };
+      const a = await self.Translator.availability(opts);
+      if (a === "unavailable") return null;
+      return await self.Translator.create(opts);
+    })().catch(() => null);
+  }
+  return translatorP;
+}
+async function translateScenes(scenes, hasPersonal) {
+  const lines = scenes.map((s) => s.say);
+  try {
+    const t = await onDeviceTranslator();
+    if (t) return await Promise.all(lines.map((l) => t.translate(l)));
+  } catch { /* fall through */ }
+  // cloud fallback: only lines that carry nothing personal (scene 5+ may reflect your goals)
+  const publicIdx = lines.map((_, k) => k).filter((k) => !hasPersonal || k < 4);
+  try {
+    const ar = await translatePublic(publicIdx.map((k) => lines[k]));
+    const out = [];
+    publicIdx.forEach((k, n) => (out[k] = ar[n]));
+    return out;
+  } catch { return []; }
+}
 
 function speak(text) {
   if (!("speechSynthesis" in self)) return;

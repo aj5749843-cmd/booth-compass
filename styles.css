@@ -191,3 +191,11 @@ code { background: var(--bg); padding: 1px 5px; border-radius: 5px; font-size: 1
 @keyframes ping { from { transform: scale(.6); opacity: 1; } to { transform: scale(1.8); opacity: 0; } }
 .sc-sub { color: var(--text); font-size: 18px; margin: 12px 0 0; }
 .sc-qs li.on { color: var(--text); animation: scIn .5s both; } .sc-qs li.done { color: var(--muted); } .sc-qs li.todo { color: rgba(148,166,191,.35); }
+
+.reel-subs { padding: 2px 22px 14px; text-align: center; min-height: 58px; }
+.reel-subs p { margin: 2px 0; }
+.sub-en { color: var(--text); font-size: 14.5px; }
+.sub-ar { color: #ffd98a; font-size: 17px; font-family: "Segoe UI", Tahoma, "Noto Naskh Arabic", sans-serif; }
+#reel select { background: var(--panel-2); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 4px 6px; font: inherit; font-size: 12px; max-width: 190px; }
+.reel-ctl { gap: 8px; }
+.reel-ctl .speaking { margin-right: auto; }

@@ -342,3 +342,14 @@ function simBrief(p, b, c) {
     where: "simulated",
   };
 }
+
+// ---------- CLOUD: translate public (non-personal) lines to Arabic ----------
+const AR_SCHEMA = { type: "object", properties: { ar: { type: "array", items: { type: "string" } } }, required: ["ar"] };
+export async function translatePublic(lines) {
+  if (!lines.length) return [];
+  if (SIMULATION) return lines.map(() => "");
+  const prompt = "Translate each line into natural Modern Standard Arabic for on-screen subtitles. Keep company names in Latin letters. Return the same number of lines in order.\n" +
+    lines.map((l, i) => `${i + 1}. ${l}`).join("\n");
+  const { text } = await runCloud("Arabic subtitles (public booth info)", "ar", InferenceMode.ONLY_IN_CLOUD, AR_SCHEMA, prompt, { personal: false });
+  return JSON.parse(text).ar;
+}
