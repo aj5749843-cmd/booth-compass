@@ -7,7 +7,7 @@ import {
   getAI, getGenerativeModel, GoogleAIBackend, InferenceMode, InferenceSource,
 } from "firebase/ai";
 import { initializeAppCheck, ReCaptchaEnterpriseProvider } from "firebase/app-check";
-import { firebaseConfig, recaptchaEnterpriseSiteKey, CLOUD_MODEL } from "./config.js";
+import { firebaseConfig, recaptchaEnterpriseSiteKey, CLOUD_MODEL, CLOUD_FALLBACKS } from "./config.js";
 
 // add ?sim to the URL to force simulation (handy for UI work)
 export const SIMULATION = !firebaseConfig.apiKey || new URLSearchParams(location.search).has("sim");
@@ -30,6 +30,7 @@ export function initAI() {
     self.FIREBASE_APPCHECK_DEBUG_TOKEN = true; // register the printed token in the console
   }
   if (recaptchaEnterpriseSiteKey) {
+    console.info("[BoothCompass] App Check: reCAPTCHA Enterprise on", location.hostname);
     initializeAppCheck(app, {
       provider: new ReCaptchaEnterpriseProvider(recaptchaEnterpriseSiteKey),
       isTokenAutoRefreshEnabled: true,
@@ -94,13 +95,13 @@ const BRIEF_SCHEMA = {
 };
 
 // ---------- model factory ----------
-function model(kind, mode, schema) {
-  const key = kind + ":" + mode;
+function model(kind, mode, schema, cloudModel = CLOUD_MODEL) {
+  const key = kind + ":" + mode + ":" + cloudModel;
   if (models.has(key)) return models.get(key);
   const params = {
     mode,
     inCloudParams: {
-      model: CLOUD_MODEL,
+      model: cloudModel,
       generationConfig: schema
         ? { responseMimeType: "application/json", responseJsonSchema: schema, temperature: 0.2 }
         : { temperature: 0.4 },
@@ -116,9 +117,47 @@ function personalMode(privacyShield) {
   return privacyShield ? InferenceMode.ONLY_ON_DEVICE : InferenceMode.PREFER_ON_DEVICE;
 }
 
+function withTimeout(promise, ms, what) {
+  return Promise.race([
+    promise,
+    new Promise((_, rej) => setTimeout(() => rej(new Error(`${what} timed out after ${ms / 1000}s — check App Check / AI Logic setup (see console)`)), ms)),
+  ]);
+}
+
+const sleepMs = (ms) => new Promise((r) => setTimeout(r, ms));
+const transient = (e) => /\b(429|500|502|503|504)\b|high demand|overloaded|unavailable|timed out/i.test(String(e?.message || e));
+export let retryNotice = null; // UI hook: (text) => void
+
+// Cloud calls: retry with backoff, then fall back to other cloud models.
+async function runCloud(task, kind, mode, schema, prompt, opts) {
+  const chain = [CLOUD_MODEL, ...CLOUD_FALLBACKS];
+  let lastErr;
+  for (const name of chain) {
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        return await run(task, model(kind, mode, schema, name), prompt, opts);
+      } catch (e) {
+        lastErr = e;
+        if (!transient(e)) throw e;
+        const wait = 1500 * 2 ** attempt;
+        retryNotice?.(`Cloud busy (${name}) — retrying in ${Math.round(wait / 1000)}s…`);
+        await sleepMs(wait);
+      }
+    }
+  }
+  throw lastErr;
+}
+export function setRetryNotice(fn) { retryNotice = fn; }
+
 async function run(task, m, prompt, { personal }) {
   const t0 = performance.now();
-  const result = await m.generateContent(prompt);
+  let result;
+  try {
+    result = await withTimeout(m.generateContent(prompt), 60000, task);
+  } catch (e) {
+    console.error("[BoothCompass]", task, e);
+    throw e;
+  }
   const ms = Math.round(performance.now() - t0);
   const where = result.response.inferenceSource === InferenceSource.ON_DEVICE ? "on_device" : "in_cloud";
   log({
@@ -153,8 +192,7 @@ export async function buildCards(booths, onBatch) {
       parsed = { cards: batch.map(simCard) };
       log({ task: "Build booth cards (public listings)", where: "simulated", ms: 350, sent: listingPrompt(batch), personal: false });
     } else {
-      const m = model("cards", InferenceMode.ONLY_IN_CLOUD, CARD_SCHEMA);
-      const { text } = await run("Build booth cards (public listings)", m, listingPrompt(batch), { personal: false });
+      const { text } = await runCloud("Build booth cards (public listings)", "cards", InferenceMode.ONLY_IN_CLOUD, CARD_SCHEMA, listingPrompt(batch), { personal: false });
       parsed = JSON.parse(text);
     }
     for (const c of parsed.cards) cards[c.id] = c;

@@ -17,3 +17,5 @@ export const recaptchaEnterpriseSiteKey = "6Ld1JjIuAAAAAB3kuiOjpBBvjRrIp0x9eo8P4
 
 // Cloud model used for the one-time "expo pack" build and as fallback.
 export const CLOUD_MODEL = "gemini-3.5-flash-lite";
+// Tried in order when the main cloud model is overloaded (HTTP 429/500/503).
+export const CLOUD_FALLBACKS = ["gemini-3.5-flash", "gemini-2.5-flash-lite"];

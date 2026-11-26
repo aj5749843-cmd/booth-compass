@@ -1,7 +1,7 @@
 import { EXPO as DEMO_EXPO } from "./expo-data.js";
 import {
   SIMULATION, initAI, deviceStatus, prepareDevice, buildCards, buildProfile,
-  scoreBooth, briefBooth, callLog, onLog,
+  scoreBooth, briefBooth, callLog, onLog, setRetryNotice,
 } from "./ai.js";
 
 const $ = (s) => document.querySelector(s);
@@ -150,6 +150,7 @@ async function onBuildPack() {
   $("#packBtn").disabled = true;
   $("#packStatus").textContent = "Cloud is reading the public exhibitor directory…";
   try {
+    setRetryNotice((msg) => ($("#packStatus").textContent = msg));
     const cards = await buildCards(expo.booths, (done, total) => {
       $("#packBar").style.width = (100 * done) / total + "%";
       $("#packStatus").textContent = `Cloud: ${done}/${total} booth cards`;
