@@ -325,7 +325,7 @@ function genericBrief(b, c) {
     questions: [
       `Can you show a live demo of ${c.offerings[0] || "your product"}?`,
       "Who is a customer like me, and what changed for them?",
-      "What does a small pilot cost and how long does it take?",
+      "What does a small trial project cost, and how long does it take?",
     ],
     where: "generic",
   };
@@ -411,10 +411,11 @@ async function playReel(b, c, r) {
   ov.innerHTML = `<div class="reel-box"><div class="reel-stage"></div>
     <div class="reel-dots">${scenes.map(() => "<i></i>").join("")}</div>
     <div class="reel-ctl"><span class="speaking"><span class="wave"><i></i><i></i><i></i></span> ${SRC[r.where] || "generic"}</span>
+    <button class="btn-ghost" id="reelMute" title="Narration on/off">🔊</button>
     <select id="reelVoice" title="Voice"></select>
     <select id="reelRate" title="Speed"><option value="0.9">0.9×</option><option value="1">1×</option><option value="1.1">1.1×</option></select>
     <button class="btn-ghost" id="reelClose">Close</button></div>
-    <p class="voice-hint" hidden>No English voice on this computer, so the narration sounds Arabic. Add one: Windows Settings › Time &amp; language › Speech › Add voices › English (United States), then restart the browser.</p>
+    <p class="voice-hint" hidden>Narration is off: this browser sees no English voice, so the reel plays with subtitles only. To hear it, set an English voice (e.g. Microsoft Zira) as the Windows default voice and restart the browser, or use Chrome.</p>
     <div class="reel-subs"><p class="sub-en"></p><p class="sub-ar" dir="rtl" lang="ar"></p></div></div>`;
   document.body.appendChild(ov);
   const stage = ov.querySelector(".reel-stage");
@@ -436,6 +437,12 @@ async function playReel(b, c, r) {
   fillVoices();
   if ("speechSynthesis" in self) speechSynthesis.addEventListener("voiceschanged", fillVoices);
   console.info("[BoothCompass] voices:", ("speechSynthesis" in self ? speechSynthesis.getVoices() : []).map((v) => `${v.name} (${v.lang})`));
+  let muted = load("bc-mute") === "1";
+  const muteBtn = ov.querySelector("#reelMute");
+  const paintMute = () => { muteBtn.textContent = muted || !voices.length ? "🔇" : "🔊"; };
+  paintMute();
+  muteBtn.onclick = () => { muted = !muted; save("bc-mute", muted ? "1" : "0"); paintMute(); if (muted) try { speechSynthesis.cancel(); } catch {} };
+  if ("speechSynthesis" in self) speechSynthesis.addEventListener("voiceschanged", paintMute);
   const savedRate = load("bc-rate");
   rSel.value = savedRate || "1";
   vSel.onchange = () => save("bc-voice", vSel.value);
@@ -459,7 +466,8 @@ async function playReel(b, c, r) {
     const fallbackMs = Math.max(2600, sc.say.split(" ").length * 380);
     const minMs = Math.max(2200, sc.say.split(" ").length * 260); // every scene stays on screen at least this long
     const t0 = performance.now();
-    if (!("speechSynthesis" in self)) { timer = setTimeout(next, fallbackMs); return; }
+    // no English voice (or muted) -> subtitles only, never an Arabic voice reading English
+    if (!("speechSynthesis" in self) || muted || !voices.length) { timer = setTimeout(next, fallbackMs); return; }
     const u = new SpeechSynthesisUtterance(sc.say);
     const v = voiceFor(); if (v) u.voice = v;
     u.lang = v?.lang || "en-US"; u.rate = parseFloat(rSel.value) || 1;

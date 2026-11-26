@@ -271,7 +271,7 @@ export async function briefBooth(profile, booth, card, privacyShield) {
   const m = model("brief", personalMode(privacyShield), BRIEF_SCHEMA);
   const prompt =
     "Write a spoken 30-second booth briefing (max 70 words, second person, friendly) telling the visitor why this booth " +
-    "matters for their goals and what to look at. Then 3 sharp questions to ask the exhibitor that serve the visitor's goals " +
+    "matters for their goals and what to look at. Then 3 sharp questions to ask the exhibitor that serve the visitor's goals (plain words, say 'trial' not 'pilot') " +
     "without revealing their budget.\nVisitor: " + JSON.stringify(profile) + "\nBooth: " +
     JSON.stringify({ name: booth.name, ...card });
   const { text, where } = await runRetry(`Briefing ${booth.name}`, m, prompt, { personal: true });
@@ -337,7 +337,7 @@ function simBrief(p, b, c) {
     questions: [
       `Can you show a live demo of ${c.offerings[0] || "your product"}?`,
       "Who are two customers similar to me, and what changed for them?",
-      "What does a small pilot look like, and how long does it take?",
+      "What does a small trial project look like, and how long does it take?",
     ],
     where: "simulated",
   };
