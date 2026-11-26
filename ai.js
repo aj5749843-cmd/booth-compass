@@ -149,6 +149,23 @@ async function runCloud(task, kind, mode, schema, prompt, opts) {
 }
 export function setRetryNotice(fn) { retryNotice = fn; }
 
+// Personal calls (prefer on-device): if they end up in a busy cloud, retry a few times.
+async function runRetry(task, m, prompt, opts) {
+  let lastErr;
+  for (let attempt = 0; attempt < 4; attempt++) {
+    try {
+      return await run(task, m, prompt, opts);
+    } catch (e) {
+      lastErr = e;
+      if (!transient(e)) throw e;
+      const wait = 1500 * 2 ** attempt;
+      retryNotice?.(`Cloud busy — retrying in ${Math.round(wait / 1000)}s…`);
+      await sleepMs(wait);
+    }
+  }
+  throw lastErr;
+}
+
 async function run(task, m, prompt, { personal }) {
   const t0 = performance.now();
   let result;
@@ -222,7 +239,7 @@ export async function buildProfile(goalsText, privacyShield) {
   const prompt =
     "Extract a compact visitor profile from these private trade-show goals. " +
     "interests and avoid are short lowercase keywords.\n\nGoals: " + goalsText;
-  const { text } = await run("Read your goals", m, prompt, { personal: true });
+  const { text } = await runRetry("Read your goals", m, prompt, { personal: true });
   return JSON.parse(text);
 }
 
@@ -240,7 +257,7 @@ export async function scoreBooth(profile, booth, card, privacyShield) {
     "reason: max 18 words, speak to the visitor as 'you'.\n" +
     "Visitor: " + JSON.stringify(profile) + "\nBooth: " +
     JSON.stringify({ name: booth.name, ...pick(card, ["oneLiner", "offerings", "audience", "stage", "pricing", "seeking", "tags"]) });
-  const { text, where } = await run(`Score ${booth.name}`, m, prompt, { personal: true });
+  const { text, where } = await runRetry(`Score ${booth.name}`, m, prompt, { personal: true });
   return { ...JSON.parse(text), where };
 }
 
@@ -257,7 +274,7 @@ export async function briefBooth(profile, booth, card, privacyShield) {
     "matters for their goals and what to look at. Then 3 sharp questions to ask the exhibitor that serve the visitor's goals " +
     "without revealing their budget.\nVisitor: " + JSON.stringify(profile) + "\nBooth: " +
     JSON.stringify({ name: booth.name, ...card });
-  const { text, where } = await run(`Briefing ${booth.name}`, m, prompt, { personal: true });
+  const { text, where } = await runRetry(`Briefing ${booth.name}`, m, prompt, { personal: true });
   return { ...JSON.parse(text), where };
 }
 

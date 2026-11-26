@@ -223,6 +223,7 @@ async function onFind() {
   renderResults();
   $("#scoreBar").style.width = "0";
   try {
+    setRetryNotice((msg) => ($("#scoreStatus").textContent = msg));
     $("#scoreStatus").textContent = "Reading your goals on this device…";
     state.profile = await buildProfile($("#goals").value.trim(), shield);
     // likely matches first, so the map lights up where it matters
