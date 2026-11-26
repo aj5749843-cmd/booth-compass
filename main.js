@@ -414,6 +414,7 @@ async function playReel(b, c, r) {
     <select id="reelVoice" title="Voice"></select>
     <select id="reelRate" title="Speed"><option value="0.9">0.9×</option><option value="1">1×</option><option value="1.1">1.1×</option></select>
     <button class="btn-ghost" id="reelClose">Close</button></div>
+    <p class="voice-hint" hidden>No English voice on this computer, so the narration sounds Arabic. Add one: Windows Settings › Time &amp; language › Speech › Add voices › English (United States), then restart the browser.</p>
     <div class="reel-subs"><p class="sub-en"></p><p class="sub-ar" dir="rtl" lang="ar"></p></div></div>`;
   document.body.appendChild(ov);
   const stage = ov.querySelector(".reel-stage");
@@ -422,10 +423,20 @@ async function playReel(b, c, r) {
   const subAr = ov.querySelector(".sub-ar");
   // voice + speed pickers (remembered on this device)
   const vSel = ov.querySelector("#reelVoice"), rSel = ov.querySelector("#reelRate");
-  const voices = englishVoices();
-  vSel.innerHTML = voices.map((v) => `<option value="${esc(v.name)}">${esc(v.name.replace(/Microsoft |Google /, "").replace(/ Online \(Natural\)/, " ★"))}</option>`).join("") || "<option>Default voice</option>";
-  const saved = load("bc-voice"), savedRate = load("bc-rate");
-  if (saved && voices.some((v) => v.name === saved)) vSel.value = saved;
+  let voices = englishVoices();
+  const fillVoices = () => {
+    voices = englishVoices();
+    const keep = vSel.value || load("bc-voice");
+    vSel.innerHTML = voices.length
+      ? voices.map((v) => `<option value="${esc(v.name)}">${esc(v.name.replace(/Microsoft |Google /, "").replace(/ Online \(Natural\)/, " ★"))}</option>`).join("")
+      : "<option>No English voice found</option>";
+    if (keep && voices.some((v) => v.name === keep)) vSel.value = keep;
+    ov.querySelector(".voice-hint").hidden = voices.length > 0;
+  };
+  fillVoices();
+  if ("speechSynthesis" in self) speechSynthesis.addEventListener("voiceschanged", fillVoices);
+  console.info("[BoothCompass] voices:", ("speechSynthesis" in self ? speechSynthesis.getVoices() : []).map((v) => `${v.name} (${v.lang})`));
+  const savedRate = load("bc-rate");
   rSel.value = savedRate || "1";
   vSel.onchange = () => save("bc-voice", vSel.value);
   rSel.onchange = () => save("bc-rate", rSel.value);

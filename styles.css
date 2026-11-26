@@ -199,3 +199,4 @@ code { background: var(--bg); padding: 1px 5px; border-radius: 5px; font-size: 1
 #reel select { background: var(--panel-2); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 4px 6px; font: inherit; font-size: 12px; max-width: 190px; }
 .reel-ctl { gap: 8px; }
 .reel-ctl .speaking { margin-right: auto; }
+.voice-hint { margin: 0 22px 6px; padding: 8px 12px; background: #3a2f12; color: #ffd98a; border-radius: 8px; font-size: 12.5px; }
