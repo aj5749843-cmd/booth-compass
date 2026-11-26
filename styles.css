@@ -145,3 +145,33 @@ dialog::backdrop { background: rgba(0,0,0,.6); }
 
 .field { width: 100%; background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: 10px; padding: 9px 10px; font: inherit; font-size: 13px; margin: 6px 0 8px; }
 code { background: var(--bg); padding: 1px 5px; border-radius: 5px; font-size: 12px; }
+
+/* booth reel */
+#reel { width: min(820px, 94vw); height: min(520px, 80vh); padding: 0; overflow: hidden; background: radial-gradient(circle at 20% 10%, #16384a, #0b1524 70%); border: 1px solid var(--teal-dark); }
+.reel-stage { height: calc(100% - 62px); display: grid; place-items: center; padding: 30px 46px; text-align: center; }
+.sc { animation: scIn .7s cubic-bezier(.2,.8,.2,1) both; max-width: 640px; }
+@keyframes scIn { from { opacity: 0; transform: translateY(26px) scale(.97); } to { opacity: 1; transform: none; } }
+.sc-title h2 { font-size: 46px; margin: 14px 0 6px; letter-spacing: .3px; }
+.sc-title p { color: var(--muted); font-size: 16px; margin: 0; }
+.sc-code { display: inline-block; color: #061a17; font-weight: 800; padding: 6px 14px; border-radius: 999px; font-size: 14px; }
+.sc-kicker { color: var(--teal); text-transform: uppercase; letter-spacing: 2px; font-size: 13px; margin: 0 0 14px; font-weight: 700; }
+.sc h3 { font-size: 28px; line-height: 1.35; margin: 0; }
+.sc-chips { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
+.sc-chips span { background: rgba(25,195,177,.14); border: 1px solid var(--teal-dark); color: var(--text); border-radius: 14px; padding: 12px 18px; font-size: 18px; animation: pop .5s both; }
+@keyframes pop { from { opacity: 0; transform: scale(.6); } to { opacity: 1; transform: none; } }
+.sc-score { font-size: 72px; font-weight: 900; margin: 0 0 6px; animation: pop .6s both; }
+.sc-score.must { color: var(--must); } .sc-score.maybe { color: var(--maybe); } .sc-score.skip { color: var(--muted); }
+.sc-qs { text-align: left; font-size: 20px; line-height: 1.5; padding-left: 26px; margin: 0; }
+.sc-qs li { margin: 8px 0; animation: scIn .6s both; }
+.reel-bar { height: 4px; background: rgba(255,255,255,.08); }
+.reel-bar i { display: block; height: 100%; width: 0; background: var(--teal); animation: grow linear forwards; }
+@keyframes grow { to { width: 100%; } }
+.reel-ctl { display: flex; justify-content: space-between; align-items: center; padding: 12px 18px; }
+
+/* detail panel becomes a slide-in drawer on narrow screens */
+@media (max-width: 1100px) {
+  .right { position: fixed; top: 0; right: 0; bottom: 0; width: min(380px, 92vw); z-index: 30; transform: translateX(105%); transition: transform .3s; box-shadow: -12px 0 30px rgba(0,0,0,.45); }
+  .right.open { transform: none; }
+}
+.drawer-close { display: none; }
+@media (max-width: 1100px) { .drawer-close { display: inline-block; float: right; } }

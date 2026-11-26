@@ -293,6 +293,7 @@ function renderDetail() {
     return;
   }
   box.innerHTML = `<div class="card">
+    <button class="btn-ghost drawer-close" id="drawerClose">✕</button>
     <h3>${esc(b.name)}</h3>
     <p class="meta">Booth ${b.id} · ${esc(zone.label)} · ${esc(c.stage)}</p>
     <p class="one">${esc(c.oneLiner)}</p>
@@ -303,29 +304,89 @@ function renderDetail() {
     <h4>They're looking for</h4><ul>${c.seeking.map((o) => `<li>${esc(o)}</li>`).join("")}</ul>
     <h4>Pricing</h4><p class="one" style="margin:0">${esc(c.pricing)}</p>
     <h4>Tags</h4><div class="tags">${c.tags.map((t) => `<span>${esc(t)}</span>`).join("")}</div>
-    ${state.profile ? `<div class="row" style="margin-top:14px"><button class="btn" id="briefBtn">▶ 30-second briefing</button><button class="btn btn-secondary" id="stopBtn" hidden>■ Stop</button></div>` : '<p class="hint" style="margin-top:14px">Add your goals to get a personal briefing.</p>'}
+    <div class="row" style="margin-top:14px"><button class="btn" id="briefBtn">▶ 30-second booth reel</button></div>
+    ${state.profile ? "" : '<p class="hint" style="margin-top:8px">Add your goals and run “Find my booths” to make the reel personal.</p>'}
     <div id="briefBox"></div>
   </div>`;
-  if (state.profile) {
-    $("#briefBtn").onclick = () => onBrief(b, c);
-    $("#stopBtn").onclick = () => { speechSynthesis.cancel(); $("#stopBtn").hidden = true; };
-  }
+  $("#briefBtn").onclick = () => onBrief(b, c);
+  $("#drawerClose").onclick = () => document.querySelector(".right").classList.remove("open");
+  document.querySelector(".right").classList.add("open");
+}
+
+function genericBrief(b, c) {
+  return {
+    briefing: `${b.name}, booth ${b.id}. ${c.oneLiner}. They offer ${c.offerings.slice(0, 2).join(" and ")}. ` +
+      `Best for ${c.audience.slice(0, 2).join(" and ")}.`,
+    questions: [
+      `Can you show a live demo of ${c.offerings[0] || "your product"}?`,
+      "Who is a customer like me, and what changed for them?",
+      "What does a small pilot cost and how long does it take?",
+    ],
+    where: "generic",
+  };
 }
 
 async function onBrief(b, c) {
   const out = $("#briefBox");
-  out.innerHTML = `<div class="brief"><span class="speaking">Writing your briefing on this device…</span></div>`;
-  try {
-    const r = await briefBooth(state.profile, b, c, $("#shield").checked);
+  let r;
+  if (state.profile) {
+    out.innerHTML = `<div class="brief"><span class="speaking">Writing your personal briefing…</span></div>`;
+    try {
+      r = await briefBooth(state.profile, b, c, $("#shield").checked);
+    } catch (e) {
+      out.innerHTML = `<div class="brief"><p>Couldn't write the briefing: ${esc(e.message)}</p></div>`;
+      return;
+    }
     if (state.selected !== b.id) return;
-    out.innerHTML = `<div class="brief">
-      <span class="speaking">Briefing · ${SRC[r.where] || ""}<span class="wave"><i></i><i></i><i></i></span></span>
-      <p>${esc(r.briefing)}</p>
-      <h4>Ask them</h4><ul>${r.questions.slice(0, 3).map((q) => `<li>${esc(q)}</li>`).join("")}</ul></div>`;
-    speak(r.briefing);
-  } catch (e) {
-    out.innerHTML = `<div class="brief"><p>Couldn't write the briefing: ${esc(e.message)}</p></div>`;
+  } else {
+    r = genericBrief(b, c);
   }
+  out.innerHTML = `<div class="brief">
+    <span class="speaking">Briefing · ${SRC[r.where] || "generic (no goals yet)"}</span>
+    <p>${esc(r.briefing)}</p>
+    <h4>Ask them</h4><ul>${r.questions.slice(0, 3).map((q) => `<li>${esc(q)}</li>`).join("")}</ul>
+    <button class="btn btn-secondary" id="replayBtn" style="margin-top:8px">↻ Replay reel</button></div>`;
+  $("#replayBtn").onclick = () => playReel(b, c, r);
+  playReel(b, c, r);
+}
+
+// ---------- 30-second booth reel: animated scenes + voice ----------
+function playReel(b, c, r) {
+  const zone = expo.zones.find((z) => z.code === b.zone);
+  const s = state.scores[b.id];
+  const scenes = [
+    `<div class="sc sc-title"><span class="sc-code" style="background:${zone.color}">${esc(b.id)}</span>
+       <h2>${esc(b.name)}</h2><p>${esc(zone.label)} · ${esc(c.stage)}</p></div>`,
+    `<div class="sc"><p class="sc-kicker">What they do</p><h3>${esc(c.oneLiner)}</h3></div>`,
+    `<div class="sc"><p class="sc-kicker">They offer</p><div class="sc-chips">${c.offerings.slice(0, 4).map((o, i) => `<span style="animation-delay:${0.25 + i * 0.35}s">${esc(o)}</span>`).join("")}</div></div>`,
+    `<div class="sc"><p class="sc-kicker">${s ? "Why it fits you" : "Who should visit"}</p>
+       ${s ? `<div class="sc-score ${tier(s.score)}">${s.score}</div>` : ""}<h3>${esc(s ? s.reason : c.audience.join(" · "))}</h3></div>`,
+    `<div class="sc"><p class="sc-kicker">Ask them</p><ol class="sc-qs">${r.questions.slice(0, 3).map((q, i) => `<li style="animation-delay:${0.3 + i * 0.6}s">${esc(q)}</li>`).join("")}</ol></div>`,
+  ];
+  let dlg = $("#reel");
+  if (!dlg) {
+    dlg = document.createElement("dialog");
+    dlg.id = "reel";
+    document.body.appendChild(dlg);
+  }
+  dlg.innerHTML = `<div class="reel-stage"></div><div class="reel-bar"><i></i></div>
+    <div class="reel-ctl"><span class="speaking"><span class="wave"><i></i><i></i><i></i></span> ${SRC[r.where] || "generic"}</span>
+    <button class="btn-ghost" id="reelClose">Close</button></div>`;
+  const stage = dlg.querySelector(".reel-stage");
+  const total = 24000, per = total / scenes.length;
+  dlg.querySelector(".reel-bar i").style.animationDuration = total + "ms";
+  let i = 0, timer;
+  const show = () => {
+    stage.innerHTML = scenes[i];
+    i++;
+    if (i < scenes.length) timer = setTimeout(show, per);
+  };
+  const close = () => { clearTimeout(timer); speechSynthesis?.cancel(); dlg.close(); };
+  dlg.querySelector("#reelClose").onclick = close;
+  dlg.onclose = () => { clearTimeout(timer); speechSynthesis?.cancel(); };
+  dlg.showModal();
+  show();
+  speak(r.briefing + " Ask them: " + r.questions.slice(0, 3).join(" "));
 }
 
 function speak(text) {
@@ -333,9 +394,8 @@ function speak(text) {
   speechSynthesis.cancel();
   const u = new SpeechSynthesisUtterance(text);
   u.lang = "en-US"; u.rate = 1.02;
-  const stop = $("#stopBtn");
-  if (stop) stop.hidden = false;
-  u.onend = () => { document.querySelector(".wave")?.remove(); if ($("#stopBtn")) $("#stopBtn").hidden = true; };
+
+  u.onend = () => document.querySelector("#reel .wave")?.remove();
   speechSynthesis.speak(u);
 }
 
