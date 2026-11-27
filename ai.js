@@ -161,7 +161,9 @@ async function runRetry(task, m, prompt, opts) {
       lastErr = e;
       if (!transient(e)) throw e;
       const wait = 1500 * 2 ** attempt;
-      retryNotice?.(`Cloud busy — retrying in ${Math.round(wait / 1000)}s…`);
+      const why = /timed out/i.test(String(e?.message || e)) ? "is slow" : "is busy";
+      console.warn("[BoothCompass] retry", task, String(e?.message || e));
+      retryNotice?.(`${task}: AI ${why} — retrying in ${Math.round(wait / 1000)}s (try ${attempt + 2}/4)…`);
       await sleepMs(wait);
     }
   }
