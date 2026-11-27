@@ -36,25 +36,25 @@ Floor-plan import from organizer PDFs, multi-day agendas for conference sessions
 ### Built during the submission period
 Everything in this repository was built between 25 and 30 November 2026. No pre-existing code.
 
-## 2. Demo video script (2:45, English voice-over, max 3:00)
+## 2. Demo video script (2:50, English voice-over, max 3:00)
 
-**Story:** one visitor, one problem, one clear outcome. Sara (fictional) owns a small private school and has one day at a 60-booth tech expo.
+**Story:** Sara (fictional) owns a small private school in Jeddah. Tomorrow she flies to Riyadh for one day at NEXA Tech Expo (fictional, 60 booths). Tonight, in her hotel room on public Wi-Fi, she plans. Tomorrow, she walks out with a deal.
 **Promise in one line:** *Smart advice about your private goals, without sending them anywhere.*
 **Recording:** Chrome desktop, 1920x1080, browser zoom 110%, Gemini Nano ready, Privacy shield ON, booth cards already saved. Speed up on-device scoring (8x) with a small "8x" badge.
-**Style:** calm, confident voice; slow mouse; one idea per scene; short on-screen captions (bold, bottom-left).
+**Style:** calm, confident voice; slow mouse; one idea per scene; short bold captions bottom-left. Scenes 1 and 10 can use simple title cards (text on dark background) — no stock footage of real events or brands.
 
 | # | Time | Screen | On-screen caption | Voice-over |
 |---|---|---|---|---|
-| 1 Hook | 0:00–0:12 | Slow zoom across the full expo map | **60 booths. 1 day.** | "Sixty booths. One day. And every AI planner asks the same thing first: tell me your budget, your plans, your secrets." |
-| 2 Problem | 0:12–0:24 | Cursor rests on the empty goals box | **Your goals are private.** | "Sara runs a small private school. Her budget is tight, and her plans are nobody's business. So why should they go to a server?" |
-| 3 Solution | 0:24–0:42 | Header chips: Online · On-device AI ready (Gemini Nano) · Privacy shield ✓ | **Hybrid AI: cloud + on-device** | "Booth Compass is a hybrid AI app built with Firebase AI Logic. It splits the work: public data goes to the cloud, personal data stays on this laptop, with Gemini Nano running in Chrome." |
-| 4 Cloud part | 0:42–0:58 | "60 booth cards saved on this device" (brief glimpse of Build expo pack) | **Cloud: public listings only** | "First, Gemini in the cloud reads the public exhibitor list once and turns it into clean booth cards. Nothing about Sara is sent. The cards are cached, so the rest works offline." |
-| 5 Private part | 0:58–1:22 | Type the goals → Find my booths → booths light up one by one (8x) | **On-device: Gemini Nano** | "Now the private part. Sara types what she really needs: AI tutoring, better parent communication, a tight budget. Gemini Nano reads it and scores all sixty booths, right here on the device." |
-| 6 Result | 1:22–1:40 | Final map: 3 green booths, pink route 1→2→3; zoom on a grey enterprise booth | **3 must-visits. 1 route.** | "Three must-visit booths and the shortest walking route. And because small models can be fooled by keywords, simple guard rails keep the results honest. An enterprise-only booth can't top a tight-budget plan." |
-| 7 Briefing | 1:40–2:10 | Click Kitabi → 30-second booth reel: mini-map, why it fits, 3 questions, Arabic subtitles | **30-second briefing** | "Before she walks over, Sara gets a thirty-second briefing: what they do, where they are, why they fit, and three smart questions that don't reveal her budget. Subtitles are translated on device, too." |
-| 8 Explore | 2:10–2:20 | Click a tag → similar booths pulse on the map | **Tap a tag, find similar booths** | "One tap on a tag finds similar booths across the hall." |
-| 9 Proof | 2:20–2:38 | What left my device? → scroll: cloud rows = public listings, every on-device row = "Nothing left this device" | **Personal data sent: 0** | "And we don't ask you to trust us. Every AI call is logged: where it ran, and exactly what left the device. Personal data sent to the cloud: zero." |
-| 10 Close | 2:38–2:48 | Title card: Booth Compass logo, tagline, GitHub link | **Plan any expo, privately.** | "Booth Compass. Plan any expo, privately. Built with Firebase AI Logic and Gemini Nano." |
+| 1 Hook | 0:00–0:12 | Title card: "The night before the expo" → slow zoom across the expo map | **Tomorrow: 60 booths. 1 day.** | "Tomorrow, Sara flies to Riyadh for the biggest tech expo of her year. Sixty booths, one day, and no time to waste." |
+| 2 Problem | 0:12–0:26 | Hotel-night title card → cursor on the empty goals box | **Hotel Wi-Fi. Private plans.** | "She runs a small private school. Her budget is tight, her plans are confidential, and tonight she's on hotel Wi-Fi. Every AI planner wants the same thing: send us your goals." |
+| 3 Solution | 0:26–0:42 | Header chips: Online · On-device AI ready (Gemini Nano) · Privacy shield ✓ | **Hybrid AI: cloud + on-device** | "Booth Compass is a hybrid AI app built with Firebase AI Logic. Public data goes to the cloud. Personal data stays on her laptop, with Gemini Nano running in Chrome." |
+| 4 Cloud part | 0:42–0:56 | "60 booth cards saved on this device" (brief glimpse of Build expo pack) | **Cloud: public listings only** | "The cloud reads the public exhibitor list once and builds clean booth cards. Nothing about Sara is sent, and the cards are saved for offline use." |
+| 5 Private part | 0:56–1:18 | Type the goals → Find my booths → booths light up one by one (8x) | **On-device: Gemini Nano** | "Now the private part. AI tutoring, better parent communication, a tight budget. Gemini Nano reads it and scores all sixty booths, right here on the device." |
+| 6 Result | 1:18–1:36 | Final map: 3 green booths, pink route 1→2→3; zoom on a grey enterprise booth | **3 must-visits. 1 route.** | "Three must-visit booths and the shortest walking route. Guard rails keep the small model honest: an enterprise-only booth can't top a tight-budget plan." |
+| 7 Briefing | 1:36–2:04 | Click Kitabi → 30-second booth reel: mini-map, why it fits, 3 questions, Arabic subtitles | **30-second briefing** | "For each one, a thirty-second briefing: what they do, where they are, why they fit, and three smart questions that don't reveal her budget. Even the subtitles are translated on device." |
+| 8 Explore | 2:04–2:12 | Click a tag → similar booths pulse on the map | **Tap a tag, find similar booths** | "One tap on a tag finds similar booths across the hall." |
+| 9 Proof | 2:12–2:30 | What left my device? → scroll: cloud rows = public listings, every on-device row = "Nothing left this device" | **Personal data sent: 0** | "And she doesn't have to trust us. Every AI call is logged: where it ran, and exactly what left the device. Personal data sent to the cloud: zero." |
+| 10 Outcome | 2:30–2:50 | Title card: "Next day, 11:40 AM — Booth EDU-02" → final card: Booth Compass logo, tagline, GitHub link | **She came prepared. She left with a deal.** | "The next day, Sara skipped the noise, walked straight to three booths, and asked the right questions. By noon, she was signing a trial for her school. Booth Compass. Plan any expo, privately." |
 
 ## 3. Eligibility question to Devpost support (send from your personal email)
 
