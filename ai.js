@@ -266,8 +266,8 @@ export async function scoreBooth(profile, booth, card, privacyShield) {
   const m = model("score", personalMode(privacyShield), SCORE_SCHEMA);
   const prompt =
     "You help a trade-show visitor decide which booths to visit. Answer strictly.\n" +
-    "servesVisitor: true only if the booth's audience includes people like the visitor's role (e.g. a school owner is served by booths for schools, teachers, parents or students; NOT by booths for gamers, hospitals, banks, developers, large enterprises or government).\n" +
-    "matchesGoal: true only if the booth's offerings directly solve one of the visitor's goals. Similar words in a different field do not count (coaching gamers is not tutoring students).\n" +
+    "servesVisitor: true if the visitor could realistically buy, use or partner with what this booth offers (a business visitor can use developer tools or data services; a school owner is NOT served by tools for gamers, hospitals or banks). Large-enterprise or government-only offers do not serve a small, tight-budget visitor.\n" +
+    "matchesGoal: true if the booth's offerings directly solve at least one of the visitor's goals, even if the booth also serves other industries. Similar words in a different field do not count (coaching gamers is not tutoring students).\n" +
     "score 0-100: 75+ = must visit, 50-74 = maybe, under 50 = skip. If servesVisitor is false, score under 40. Respect the budget and the avoid list. The visitor's budget is how much they can spend, NOT an interest in budgeting or finance products.\n" +
     "reason: max 18 words, speak to the visitor as 'you', be honest about weak fits.\n" +
     "Visitor: " + JSON.stringify(profile) + "\nBooth: " +
