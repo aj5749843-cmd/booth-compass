@@ -296,7 +296,8 @@ function combineScore(profile, card, r) {
   const hay = [card.oneLiner, ...(card.offerings || []), ...(card.tags || [])].join(" ").toLowerCase();
   const hits = (profile.interests || []).filter((w) => w && w.length > 2 && hay.includes(w.toLowerCase().slice(0, 6))).length;
   score += Math.min(15, hits * 5);
-  if (fit === "direct" && hits === 0) score -= 8;            // a "direct" claim with no shared words is suspect
+  if (fit === "direct" && hits === 0) score -= 8;
+  if (fit === "partial" && hits === 0) score = Math.min(score, 45); // a "partial" claim needs some evidence in the card            // a "direct" claim with no shared words is suspect
   if (fit === "none" && hits >= 3) score = Math.max(score, 52); // strong word overlap the model missed
   // guard rails
   const priceText = [card.pricing, card.stage, ...(card.audience || [])].join(" ").toLowerCase();
