@@ -266,7 +266,7 @@ export async function scoreBooth(profile, booth, card, privacyShield) {
   const m = model("score", personalMode(privacyShield), SCORE_SCHEMA);
   const prompt =
     "You help a trade-show visitor decide which booths to visit. Answer strictly.\n" +
-    "servesVisitor: true only if the booth's audience includes people like the visitor's role (e.g. a school owner is served by booths for schools, teachers, parents or students; NOT by booths for gamers, hospitals, banks or developers).\n" +
+    "servesVisitor: true only if the booth's audience includes people like the visitor's role (e.g. a school owner is served by booths for schools, teachers, parents or students; NOT by booths for gamers, hospitals, banks, developers, large enterprises or government).\n" +
     "matchesGoal: true only if the booth's offerings directly solve one of the visitor's goals. Similar words in a different field do not count (coaching gamers is not tutoring students).\n" +
     "score 0-100: 75+ = must visit, 50-74 = maybe, under 50 = skip. If servesVisitor is false, score under 40. Respect the budget and the avoid list. The visitor's budget is how much they can spend, NOT an interest in budgeting or finance products.\n" +
     "reason: max 18 words, speak to the visitor as 'you', be honest about weak fits.\n" +
@@ -278,6 +278,11 @@ export async function scoreBooth(profile, booth, card, privacyShield) {
   let score = Math.max(0, Math.min(100, Math.round(r.score)));
   if (r.servesVisitor === false) score = Math.min(score, 40);
   else if (r.matchesGoal === false) score = Math.min(score, 65);
+  // budget guard: a tight budget can't afford enterprise-only deals
+  const priceText = [card.pricing, card.stage, ...(card.audience || [])].join(" ").toLowerCase();
+  if (profile.budget === "low" && /enterprise|large (companies|enterprises)|gov/.test(priceText)) {
+    score = Math.min(score, 55);
+  }
   return { score, reason: r.reason, where };
 }
 
