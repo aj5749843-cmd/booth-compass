@@ -291,16 +291,17 @@ function combineScore(profile, card, r) {
   const goalOk = r.matchedGoal >= 1 && r.matchedGoal <= ((profile.goals || []).length || 9);
   let fit = goalOk ? r.fit : "none";
   if (fit === "none" && goalOk) fit = "partial";
-  let score = fit === "direct" ? 85 : fit === "partial" ? 60 : 20;
+  let score = fit === "direct" ? 85 : fit === "partial" ? 62 : 20;
   // keyword evidence: interests that literally appear in the booth card
   const hay = [card.oneLiner, ...(card.offerings || []), ...(card.tags || [])].join(" ").toLowerCase();
   const hits = (profile.interests || []).filter((w) => w && w.length > 2 && hay.includes(w.toLowerCase().slice(0, 6))).length;
-  score += Math.min(10, hits * 4);
+  score += Math.min(15, hits * 5);
   if (fit === "direct" && hits === 0) score -= 8;            // a "direct" claim with no shared words is suspect
-  if (fit === "none" && hits >= 2) score = Math.max(score, 55); // strong word overlap the model missed
+  if (fit === "none" && hits >= 3) score = Math.max(score, 52); // strong word overlap the model missed
   // guard rails
   const priceText = [card.pricing, card.stage, ...(card.audience || [])].join(" ").toLowerCase();
-  const enterpriseOnly = r.forSmallBuyers === false || /enterprise|large (companies|enterprises)|gov/.test(priceText);
+  // trust the booth card, not the small model's guess, for the enterprise-only check
+  const enterpriseOnly = /enterprise|large (companies|enterprises)|gov|\bbanks?\b|hospitals?|regulators?/.test(priceText);
   if (profile.budget === "low" && enterpriseOnly) score = Math.min(score, 45);
   if ((profile.avoid || []).some((a) => a && hay.includes(a.toLowerCase()))) score = Math.min(score, 30);
   score = Math.max(0, Math.min(98, Math.round(score)));
