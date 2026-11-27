@@ -79,10 +79,12 @@ const PROFILE_SCHEMA = {
 const SCORE_SCHEMA = {
   type: "object",
   properties: {
+    servesVisitor: { type: "boolean" },
+    matchesGoal: { type: "boolean" },
     score: { type: "integer", minimum: 0, maximum: 100 },
     reason: { type: "string" },
   },
-  required: ["score", "reason"],
+  required: ["servesVisitor", "matchesGoal", "score", "reason"],
 };
 
 const BRIEF_SCHEMA = {
@@ -248,7 +250,7 @@ export async function buildProfile(goalsText, privacyShield) {
   const m = model("profile", personalMode(privacyShield), PROFILE_SCHEMA);
   const prompt =
     "Extract a compact visitor profile from these private trade-show goals. " +
-    "interests and avoid are short lowercase keywords.\n\nGoals: " + goalsText;
+    "interests and avoid are short lowercase keywords about what they want to find. Money limits go only in budget, never in interests.\n\nGoals: " + goalsText;
   const { text } = await runRetry("Read your goals", m, prompt, { personal: true });
   return JSON.parse(text);
 }
@@ -263,12 +265,20 @@ export async function scoreBooth(profile, booth, card, privacyShield) {
   }
   const m = model("score", personalMode(privacyShield), SCORE_SCHEMA);
   const prompt =
-    "Rate 0-100 how worth visiting this booth is for the visitor. 80+ = must visit, 50-79 = maybe, <50 = skip. " +
-    "reason: max 18 words, speak to the visitor as 'you'.\n" +
+    "You help a trade-show visitor decide which booths to visit. Answer strictly.\n" +
+    "servesVisitor: true only if the booth's audience includes people like the visitor's role (e.g. a school owner is served by booths for schools, teachers, parents or students; NOT by booths for gamers, hospitals, banks or developers).\n" +
+    "matchesGoal: true only if the booth's offerings directly solve one of the visitor's goals. Similar words in a different field do not count (coaching gamers is not tutoring students).\n" +
+    "score 0-100: 75+ = must visit, 50-74 = maybe, under 50 = skip. If servesVisitor is false, score under 40. Respect the budget and the avoid list. The visitor's budget is how much they can spend, NOT an interest in budgeting or finance products.\n" +
+    "reason: max 18 words, speak to the visitor as 'you', be honest about weak fits.\n" +
     "Visitor: " + JSON.stringify(profile) + "\nBooth: " +
     JSON.stringify({ name: booth.name, ...pick(card, ["oneLiner", "offerings", "audience", "stage", "pricing", "seeking", "tags"]) });
   const { text, where } = await runRetry(`Score ${booth.name}`, m, prompt, { personal: true });
-  return { ...JSON.parse(text), where };
+  const r = JSON.parse(text);
+  // guard rail: a booth that doesn't serve this visitor can't be a must-visit
+  let score = Math.max(0, Math.min(100, Math.round(r.score)));
+  if (r.servesVisitor === false) score = Math.min(score, 40);
+  else if (r.matchesGoal === false) score = Math.min(score, 65);
+  return { score, reason: r.reason, where };
 }
 
 // ---------- ON DEVICE: 30-second briefing ----------
