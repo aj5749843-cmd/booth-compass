@@ -36,18 +36,22 @@ Floor-plan import from organizer PDFs, multi-day agendas for conference sessions
 ### Built during the submission period
 Everything in this repository was built between 25 and 30 November 2026. No pre-existing code.
 
-## 2. Demo video script (target 2:40, English)
+## 2. Demo video script (target 2:45, English, max 3:00)
 
-| Time | Screen | Voice-over |
-|---|---|---|
-| 0:00–0:15 | Wide shot of a crowded expo floor plan | "Six hundred booths. Two days. And the only way to plan is to tell a chatbot your budget and your secrets." |
-| 0:15–0:35 | Booth Compass, step 1, click *Build expo pack* | "Booth Compass splits the work. The cloud reads the public exhibitor list once — nothing about me is sent." |
-| 0:35–1:05 | Type goals (school owner, tight budget), click *Find my booths*; map lights up | "My real goals stay on this laptop. Gemini Nano scores every booth right here, one by one." |
-| 1:05–1:25 | Turn Wi-Fi off; change goals; run again | "Wi-Fi off. Still works — the device does the personal part." |
-| 1:25–1:50 | Click top booth, play 30-second briefing | "A spoken briefing, and questions to ask that don't reveal my budget." |
-| 1:50–2:15 | Open *What left my device?* | "Every AI call, where it ran, and exactly what left the device. Personal data sent to the cloud: zero." |
-| 2:15–2:30 | *Use another expo* → paste a list | "Works with any expo — paste the exhibitor list." |
-| 2:30–2:40 | Logo | "Booth Compass. Plan any expo, privately. Built with Firebase AI Logic." |
+Recording notes: Chrome desktop, Gemini Nano ready, Privacy shield ON, booth cards already saved.
+Scoring 60 booths on device takes ~7 minutes, so speed that part up (8x) or cut to the finished map.
+
+| # | Time | Screen | Voice-over (English) |
+|---|---|---|---|
+| 1 | 0:00–0:15 | The full expo map, 60 booths | "Sixty booths, one day, and a budget I don't want to share. Today, planning an expo means telling a chatbot your goals and your secrets." |
+| 2 | 0:15–0:35 | Header chips: *Online* · *On-device AI: ready (Gemini Nano)* · *Privacy shield* | "Booth Compass is a hybrid AI app built on Firebase AI Logic. Public work runs in the cloud. Personal work runs on this laptop, with Gemini Nano in Chrome." |
+| 3 | 0:35–0:55 | Step 1: *60 booth cards saved on this device* (briefly show *Build expo pack*) | "First, the cloud reads the public exhibitor list once and turns it into clean booth cards. Nothing about me is sent, and the cards are saved for offline use." |
+| 4 | 0:55–1:25 | Type: "I own a small private school, tight budget, looking for AI tutoring and parent communication tools" → *Find my booths* → booths light up one by one (sped up) | "Now my real goals. They never leave this device. Gemini Nano reads them and scores every booth, right here." |
+| 5 | 1:25–1:45 | Finished map: 3 green booths, pink route 1→3; enterprise and gaming booths grey | "Three must-visit booths and a walking route. Simple guard rails keep the small model honest: an enterprise-only booth can't be a must-visit on a tight budget." |
+| 6 | 1:45–2:15 | Click *Kitabi* → *30-second booth reel* (English voice, Arabic subtitles, mini-map, 3 questions) | "Each booth gets a thirty-second reel: what they do, where to find them, why it fits me, and three smart questions to ask. Subtitles are translated on device, too." |
+| 7 | 2:15–2:25 | Click a tag (e.g. *parents*) → matching booths pulse on the map | "Tap a tag to find similar booths across the hall." |
+| 8 | 2:25–2:40 | *What left my device?* → cloud rows say "public listings", every on-device row says "Nothing left this device" | "And full transparency: every AI call, where it ran, and what left the device. Personal data sent to the cloud: zero." |
+| 9 | 2:40–2:50 | Title card: Booth Compass + GitHub link | "Booth Compass. Plan any expo, privately. Built with Firebase AI Logic and Gemini Nano." |
 
 ## 3. Eligibility question to Devpost support (send from your personal email)
 
