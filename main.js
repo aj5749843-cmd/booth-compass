@@ -180,13 +180,25 @@ async function refreshDevice() {
   $("#enableBtn").hidden = s === "available";
 }
 async function onEnableDevice() {
-  $("#enableBtn").disabled = true;
+  const btn = $("#enableBtn");
+  btn.disabled = true;
+  btn.textContent = "Downloading Gemini Nano…";
+  $("#scoreStatus").textContent = "Download started — it can take several minutes the first time. Keep this tab open.";
+  // keep the chip honest even if progress events are slow to arrive
+  const poll = setInterval(refreshDevice, 5000);
   try {
-    await prepareDevice((p) => ($("#deviceChip").textContent = `On-device AI: downloading ${Math.round(p * 100)}%`));
+    await prepareDevice((p) => {
+      $("#deviceChip").textContent = `On-device AI: downloading ${Math.round(p * 100)}%`;
+      $("#deviceChip").className = "chip warn";
+    });
+    $("#scoreStatus").textContent = "Gemini Nano is ready on this device ✓";
   } catch (e) {
-    $("#scoreStatus").textContent = "Could not start on-device model: " + e.message;
+    console.error("[BoothCompass] on-device init", e);
+    $("#scoreStatus").textContent = "Could not start the on-device model: " + e.message;
   }
-  $("#enableBtn").disabled = false;
+  clearInterval(poll);
+  btn.disabled = false;
+  btn.textContent = "Enable on-device AI";
   refreshDevice();
 }
 

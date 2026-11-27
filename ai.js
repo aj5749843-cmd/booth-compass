@@ -193,6 +193,16 @@ export async function deviceStatus() {
 
 export async function prepareDevice(onProgress) {
   if (SIMULATION) { onProgress?.(1); return; }
+  // Start the Gemini Nano download straight from the click (needs a user gesture), with progress.
+  if ("LanguageModel" in self) {
+    const s = await self.LanguageModel.create({
+      expectedInputs: [{ type: "text", languages: ["en"] }],
+      expectedOutputs: [{ type: "text", languages: ["en"] }],
+      monitor(m) { m.addEventListener("downloadprogress", (e) => onProgress?.(e.loaded)); },
+    });
+    s.destroy?.();
+  }
+  // let the Firebase SDK pick up the ready model too
   const m = model("profile", InferenceMode.PREFER_ON_DEVICE, PROFILE_SCHEMA);
   await m.initializeDeviceModel((p) => onProgress?.(p));
 }
