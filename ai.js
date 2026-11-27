@@ -79,12 +79,13 @@ const PROFILE_SCHEMA = {
 const SCORE_SCHEMA = {
   type: "object",
   properties: {
-    servesVisitor: { type: "boolean" },
-    matchesGoal: { type: "boolean" },
-    score: { type: "integer", minimum: 0, maximum: 100 },
+    boothSells: { type: "string" },
+    matchedGoal: { type: "integer", minimum: 0, maximum: 9 },
+    fit: { type: "string", enum: ["direct", "partial", "none"] },
+    forSmallBuyers: { type: "boolean" },
     reason: { type: "string" },
   },
-  required: ["servesVisitor", "matchesGoal", "score", "reason"],
+  required: ["boothSells", "matchedGoal", "fit", "forSmallBuyers", "reason"],
 };
 
 const BRIEF_SCHEMA = {
@@ -251,7 +252,7 @@ export async function buildProfile(goalsText, privacyShield) {
   }
   const m = model("profile", personalMode(privacyShield), PROFILE_SCHEMA);
   const prompt =
-    "Extract a compact visitor profile from these private trade-show goals. " +
+    "Extract a compact visitor profile from these private trade-show goals. goals: one short item per thing they want to find (max 5). " +
     "interests and avoid are short lowercase keywords about what they want to find. Money limits go only in budget, never in interests.\n\nGoals: " + goalsText;
   const { text } = await runRetry("Read your goals", m, prompt, { personal: true });
   return JSON.parse(text);
@@ -266,26 +267,44 @@ export async function scoreBooth(profile, booth, card, privacyShield) {
     return r;
   }
   const m = model("score", personalMode(privacyShield), SCORE_SCHEMA);
+  const goals = (profile.goals && profile.goals.length ? profile.goals : profile.interests || []).slice(0, 9);
+  const goalList = goals.map((g, i) => `${i + 1}. ${g}`).join("\n");
   const prompt =
-    "You help a trade-show visitor decide which booths to visit. Answer strictly.\n" +
-    "servesVisitor: true if the visitor could realistically buy, use or partner with what this booth offers (a business visitor can use developer tools or data services; a school owner is NOT served by tools for gamers, hospitals or banks). Large-enterprise or government-only offers do not serve a small, tight-budget visitor.\n" +
-    "matchesGoal: true if the booth's offerings directly solve at least one of the visitor's goals, even if the booth also serves other industries. Similar words in a different field do not count (coaching gamers is not tutoring students).\n" +
-    "score 0-100: 75+ = must visit, 50-74 = maybe, under 50 = skip. If servesVisitor is false, score under 40. Respect the budget and the avoid list. The visitor's budget is how much they can spend, NOT an interest in budgeting or finance products.\n" +
-    "reason: max 18 words, speak to the visitor as 'you', be honest about weak fits.\n" +
-    "Visitor: " + JSON.stringify(profile) + "\nBooth: " +
-    JSON.stringify({ name: booth.name, ...pick(card, ["oneLiner", "offerings", "audience", "stage", "pricing", "seeking", "tags"]) });
+    "You match one trade-show booth to a visitor's goals. Be strict and literal.\n" +
+    "Step 1 boothSells: in 6 words, what product or service this booth sells.\n" +
+    "Step 2 matchedGoal: the number of the visitor goal that this product directly fulfils, or 0 if none. " +
+    "Being in the same industry or sharing a buzzword (AI, data, budget, coaching) is NOT a match; the booth must sell what the goal asks for.\n" +
+    "Step 3 fit: direct = the product is exactly what that goal asks for; partial = it helps that goal but is not the main thing asked; none = no goal matched.\n" +
+    "Step 4 forSmallBuyers: false only if the booth sells only to large enterprises, governments, banks or hospitals.\n" +
+    "reason: max 18 words, speak to the visitor as 'you', name the goal it serves or say honestly why it doesn't fit.\n\n" +
+    "Visitor role: " + (profile.role || "visitor") + " | budget: " + (profile.budget || "unknown") +
+    (profile.avoid?.length ? " | avoid: " + profile.avoid.join(", ") : "") +
+    "\nVisitor goals:\n" + goalList +
+    "\n\nBooth: " + JSON.stringify({ name: booth.name, ...pick(card, ["oneLiner", "offerings", "audience", "stage", "pricing", "tags"]) });
   const { text, where } = await runRetry(`Score ${booth.name}`, m, prompt, { personal: true });
   const r = JSON.parse(text);
-  // guard rail: a booth that doesn't serve this visitor can't be a must-visit
-  let score = Math.max(0, Math.min(100, Math.round(r.score)));
-  if (r.servesVisitor === false) score = Math.min(score, 40);
-  else if (r.matchesGoal === false) score = Math.min(score, 65);
-  // budget guard: a tight budget can't afford enterprise-only deals
+  return { ...combineScore(profile, card, r), where };
+}
+
+// Turn the model's structured answer into a 0-100 score, with code guard rails.
+function combineScore(profile, card, r) {
+  const goalOk = r.matchedGoal >= 1 && r.matchedGoal <= ((profile.goals || []).length || 9);
+  let fit = goalOk ? r.fit : "none";
+  if (fit === "none" && goalOk) fit = "partial";
+  let score = fit === "direct" ? 85 : fit === "partial" ? 60 : 20;
+  // keyword evidence: interests that literally appear in the booth card
+  const hay = [card.oneLiner, ...(card.offerings || []), ...(card.tags || [])].join(" ").toLowerCase();
+  const hits = (profile.interests || []).filter((w) => w && w.length > 2 && hay.includes(w.toLowerCase().slice(0, 6))).length;
+  score += Math.min(10, hits * 4);
+  if (fit === "direct" && hits === 0) score -= 8;            // a "direct" claim with no shared words is suspect
+  if (fit === "none" && hits >= 2) score = Math.max(score, 55); // strong word overlap the model missed
+  // guard rails
   const priceText = [card.pricing, card.stage, ...(card.audience || [])].join(" ").toLowerCase();
-  if (profile.budget === "low" && /enterprise|large (companies|enterprises)|gov/.test(priceText)) {
-    score = Math.min(score, 55);
-  }
-  return { score, reason: r.reason, where };
+  const enterpriseOnly = r.forSmallBuyers === false || /enterprise|large (companies|enterprises)|gov/.test(priceText);
+  if (profile.budget === "low" && enterpriseOnly) score = Math.min(score, 45);
+  if ((profile.avoid || []).some((a) => a && hay.includes(a.toLowerCase()))) score = Math.min(score, 30);
+  score = Math.max(0, Math.min(98, Math.round(score)));
+  return { score, reason: r.reason };
 }
 
 // ---------- ON DEVICE: 30-second briefing ----------
