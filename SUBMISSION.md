@@ -2,39 +2,57 @@
 
 ## 1. Devpost text (paste into the submission form)
 
-**Tagline:** Plan any expo in minutes — without telling anyone why you're there.
+**Project name:** Booth Compass
+
+**Tagline:** Plan any expo in minutes, without telling anyone why you're there.
+
+**Video:** https://youtu.be/57muJgcfaJo
+**Live demo:** https://aj5749843-cmd.github.io/booth-compass/ (desktop Chrome with Gemini Nano)
+**Code (Apache-2.0):** https://github.com/aj5749843-cmd/booth-compass
 
 ### Inspiration
-Large expos have hundreds of booths. The official floor plan shows names, not reasons, so visitors now paste the exhibitor list into a cloud chatbot together with their real goals: the budget, the vendor they want to replace, the job they are quietly hunting. Planning a visit should not require handing your intentions to a server.
+Large expos have hundreds of booths. The floor plan shows names, not reasons, so visitors now paste the exhibitor list into a cloud chatbot together with their real goals: the budget, the vendor they want to replace, the job they are quietly hunting. Planning a visit should not require handing your intentions to a server, especially on hotel or conference Wi-Fi.
 
 ### What it does
-- **Expo pack (cloud, once):** Gemini in the cloud reads the public exhibitor directory and turns it into clean, structured booth cards. Only public data is sent. The pack is cached, so everything afterwards works offline.
+- **Expo pack (cloud, once per expo):** Gemini in the cloud reads the public exhibitor list and turns it into clean, structured booth cards. Only public data is sent. The pack is cached, so the rest works offline.
 - **Private goals (on device):** the visitor writes their honest goals. Gemini Nano turns them into a compact profile on the laptop.
-- **Score every booth (on device):** Nano scores each booth against the profile, one short call per booth. The floor plan lights up booth by booth: must-visit, maybe, skip.
+- **Score every booth (on device):** Nano matches each booth to the visitor's goals, one short call per booth, and the floor plan lights up live: must-visit, maybe, skip.
+- **Guard rails:** small models get fooled by shared buzzwords, so Nano answers narrow questions (what does this booth sell, which of your goals does it fulfil, is it enterprise-only) and the final score is computed in code, with checks against the booth card. An enterprise-only platform can't top a tight-budget plan.
 - **Route:** a walking route from the entrance through the must-visit booths.
-- **30-second briefing (on device):** a spoken briefing per booth plus three questions to ask the exhibitor, written so they don't reveal the visitor's budget.
-- **Privacy shield + "What left my device?":** with the shield on, personal tasks run `ONLY_ON_DEVICE`. A transparency log lists every AI call, where it ran and the exact text sent to the cloud.
-- **Any expo:** paste any public exhibitor list and Booth Compass builds a floor grid for it.
+- **30-second booth reel (on device):** an animated briefing per booth (what they do, where they are on a mini-map, why they fit you, three questions to ask that don't reveal your budget), with English narration and Arabic subtitles. Subtitles use Chrome's on-device Translator first.
+- **Privacy shield + "What left my device?":** with the shield on, personal tasks run ONLY_ON_DEVICE and never fall back to the cloud. A transparency log lists every AI call, where it ran, how long it took, and the exact text sent to the cloud. In our recorded run: 63 calls on device, 2 to the cloud (public booth text only), 0 containing personal goals.
+- **Any expo:** paste any public exhibitor list and Booth Compass builds a floor grid for it. Tap a tag to find similar booths.
 
-### How we used Firebase AI Logic
-One SDK (`firebase/ai`) with two routing choices that follow the data:
-- `InferenceMode.ONLY_IN_CLOUD` + `responseJsonSchema` for the one-time, public, heavy job (directory → booth cards).
-- `InferenceMode.PREFER_ON_DEVICE` (or `ONLY_ON_DEVICE` with the privacy shield) + `onDeviceParams.promptOptions.responseConstraint` for every personal task: goals → profile, booth scoring, briefings. Structured JSON keeps Nano's answers reliable.
-- `response.inferenceSource` feeds the transparency log, so the user can see on-device vs. cloud for every call.
-- `initializeDeviceModel()` is triggered from a user click with download progress.
+### How we built it with Firebase AI Logic
+One SDK (`firebase/ai`), with routing that follows the data:
+- `InferenceMode.ONLY_IN_CLOUD` + `responseJsonSchema` for the one-time, public, heavy job (exhibitor list → booth cards), with retries and fallback models when the cloud is busy.
+- `InferenceMode.PREFER_ON_DEVICE` (or `ONLY_ON_DEVICE` with the privacy shield) + `onDeviceParams.promptOptions.responseConstraint` for every personal task: goals → profile, booth matching, briefings. Structured JSON keeps Nano's answers reliable.
+- `response.inferenceSource` feeds the transparency log, so the user sees on-device vs. cloud for every call.
+- `initializeDeviceModel()` runs from a user click, with download progress.
 - App Check (reCAPTCHA Enterprise) protects the Gemini endpoints.
+- Plain HTML/CSS/JavaScript, built with Vite into a single page on GitHub Pages.
 
-Why hybrid is the right design: the cloud does the one expensive job on public data; the device does the many small jobs on private data — free per call, instant, and available offline inside crowded halls.
+Why hybrid is the right design: the cloud does the one expensive job on public data; the device does the many small jobs on private data, free per call, private by default, and available offline inside crowded halls.
 
 ### Challenges
-- On-device inference is single-turn, so each booth is scored with one compact prompt instead of a chat.
-- Scoring many booths takes time, so likely matches are scored first and the map updates live.
+- **Accuracy of a small model:** our first version asked Nano for a 0-100 score and it rewarded buzzwords (a gaming coach for "AI tutoring", a budgeting app for "tight budget"). We redesigned scoring as goal matching plus code-side guard rails, and the false must-visits disappeared.
+- **Speed:** scoring 60 booths on device takes several minutes on a laptop, so likely matches are scored first and the map updates live.
+- **Honest fallbacks:** when Nano is slow, the app retries on device instead of quietly sending personal data to the cloud.
+
+### Accomplishments
+A full planning flow where the personal part never leaves the laptop, and a log that proves it.
+
+### What we learned
+Hybrid AI is a data-routing decision: route by sensitivity, not just by speed. Small on-device models work best when you ask them narrow questions and let code make the final call.
 
 ### What's next
 Floor-plan import from organizer PDFs, multi-day agendas for conference sessions, and an Android build with Gemini Nano.
 
+### Built with
+firebase-ai-logic, gemini-nano, gemini-api, chrome-prompt-api, chrome-translator-api, firebase-app-check, recaptcha-enterprise, javascript, html, css, vite, github-pages
+
 ### Built during the submission period
-Everything in this repository was built between 25 and 30 November 2026. No pre-existing code.
+Everything in this repository was built between 25 and 30 November 2026. No pre-existing code. The expo and all exhibitors in the demo are fictional.
 
 ## 2. Demo video script (2:50, English voice-over, max 3:00)
 
