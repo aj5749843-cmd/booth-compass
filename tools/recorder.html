@@ -32,7 +32,7 @@ $("start").onclick=async()=>{
   try{
     stream=await navigator.mediaDevices.getDisplayMedia({video:{frameRate:30,width:{ideal:1920},height:{ideal:1080}},audio:false,preferCurrentTab:false,selfBrowserSurface:"exclude"});
   }catch(e){$("status").textContent="تم الإلغاء";return;}
-  const mime=["video/mp4;codecs=avc1","video/webm;codecs=vp9","video/webm"].find(m=>MediaRecorder.isTypeSupported(m));
+  const mime=["video/webm;codecs=vp9","video/webm","video/mp4;codecs=avc1"].find(m=>MediaRecorder.isTypeSupported(m));
   rec=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:12e6}); chunks=[];
   rec.ondataavailable=e=>e.data.size&&chunks.push(e.data);
   rec.onstop=()=>{
