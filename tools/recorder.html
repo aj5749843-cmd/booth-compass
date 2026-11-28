@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>مسجّل الشاشة — Booth Compass</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+body{font-family:system-ui,Segoe UI,Tahoma,sans-serif;background:#0b1220;color:#e8eef8;margin:0;padding:32px;line-height:1.7}
+.box{max-width:720px;margin:auto;background:#121c30;border:1px solid #23324f;border-radius:16px;padding:28px}
+h1{margin:0 0 8px;font-size:26px}
+button{font:inherit;font-size:20px;padding:12px 26px;border-radius:12px;border:0;cursor:pointer;margin:6px}
+#start{background:#14b8a6;color:#07121f;font-weight:700}#stop{background:#ef4444;color:#fff;font-weight:700}
+button:disabled{opacity:.4;cursor:default}
+#status{font-size:20px;margin:14px 0;color:#9fe6d8}
+ol{padding-right:22px}
+#list a{display:block;color:#5eead4;font-size:18px;margin:6px 0}
+video{width:100%;border-radius:12px;margin-top:12px;background:#000}
+</style></head><body><div class="box">
+<h1>🎬 مسجّل الشاشة</h1>
+<ol>
+<li>افتحي موقع Booth Compass في <b>تبويب آخر</b> في نفس نافذة Chrome.</li>
+<li>اضغطي <b>ابدأ التسجيل</b> ← اختاري <b>علامة التبويب (Chrome Tab)</b> ← اختاري تبويب Booth Compass ← <b>مشاركة</b>.</li>
+<li>Chrome ينقلك للتبويب تلقائيًا. نفّذي المشهد.</li>
+<li>ارجعي لهذا التبويب واضغطي <b>إيقاف</b>، أو اضغطي <b>إيقاف المشاركة</b> في الشريط أعلى الصفحة.</li>
+<li>يُحفظ المقطع في مجلد <b>التنزيلات</b> تلقائيًا.</li>
+</ol>
+<label>رقم المقطع: <input id="clip" type="number" value="1" min="1" style="width:70px;font-size:18px"></label><br>
+<button id="start">⏺ ابدأ التسجيل</button><button id="stop" disabled>⏹ إيقاف</button>
+<div id="status">جاهز</div><div id="list"></div><video id="pv" controls hidden></video>
+</div>
+<script>
+let rec, chunks=[], stream, t0, timer;
+const $=id=>document.getElementById(id);
+$("start").onclick=async()=>{
+  try{
+    stream=await navigator.mediaDevices.getDisplayMedia({video:{frameRate:30,width:{ideal:1920},height:{ideal:1080}},audio:false,preferCurrentTab:false,selfBrowserSurface:"exclude"});
+  }catch(e){$("status").textContent="تم الإلغاء";return;}
+  const mime=["video/mp4;codecs=avc1","video/webm;codecs=vp9","video/webm"].find(m=>MediaRecorder.isTypeSupported(m));
+  rec=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:12e6}); chunks=[];
+  rec.ondataavailable=e=>e.data.size&&chunks.push(e.data);
+  rec.onstop=()=>{
+    clearInterval(timer); stream.getTracks().forEach(t=>t.stop());
+    const ext=mime.startsWith("video/mp4")?"mp4":"webm";
+    const blob=new Blob(chunks,{type:mime}); const url=URL.createObjectURL(blob);
+    const name=`clip${$("clip").value}.${ext}`;
+    const a=document.createElement("a"); a.href=url; a.download=name; a.textContent="⬇ "+name+" ("+(blob.size/1e6).toFixed(1)+" MB)";
+    $("list").prepend(a); a.click(); $("pv").src=url; $("pv").hidden=false;
+    $("status").textContent="✅ تم الحفظ في التنزيلات: "+name; $("start").disabled=false; $("stop").disabled=true;
+    $("clip").value=+$("clip").value+1;
+  };
+  stream.getVideoTracks()[0].onended=()=>rec.state!=="inactive"&&rec.stop();
+  rec.start(1000); t0=Date.now(); $("start").disabled=true; $("stop").disabled=false;
+  timer=setInterval(()=>$("status").textContent="🔴 يسجّل… "+Math.round((Date.now()-t0)/1000)+" ث",500);
+};
+$("stop").onclick=()=>rec&&rec.state!=="inactive"&&rec.stop();
+</script></body></html>
