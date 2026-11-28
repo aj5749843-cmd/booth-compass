@@ -3,6 +3,7 @@
 **Plan any expo in minutes — without telling anyone why you're there.**
 
 **Live demo:** https://aj5749843-cmd.github.io/booth-compass/ (desktop Chrome with Gemini Nano for on-device mode)
+**Demo video (2:22):** https://youtu.be/57muJgcfaJo
 
 Big expos have hundreds of booths and a floor plan that shows names, not reasons. Today visitors paste the exhibitor list into a cloud chatbot together with their real goals: the budget, the vendor they want to replace, the job they are quietly hunting. Booth Compass does the same job, but the personal part never leaves the laptop.
 
